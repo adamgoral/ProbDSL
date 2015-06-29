@@ -66,7 +66,7 @@ let result2 =
     (avg, res)
 
 (**
-Not things are getting a bit more interesting. We are able to infer, through simulation, how likely the coin will land heads. (posterior of $theta$ parameter of binomial distribution given the observed data and prior belief that coin was fair)
+Now things are getting a bit more interesting. We are able to infer, through simulation, how likely the coin will land heads. (posterior of $theta$ parameter of binomial distribution given the observed data and prior belief that coin was fair)
 
 priorProb is our prior belief that coin is fair.
 
@@ -77,7 +77,8 @@ type RejectionQueryBuilder() =
     member x.Bind(v,f) = Option.bind f v
     member x.Return v = Some v
     member x.Zero () = None
-    
+
+// Basic computation workflow    
 let rQuery = RejectionQueryBuilder()
 
 let observation3 = [ Heads; Heads; Tails; Heads; Heads; Heads; Tails; Heads; Heads; Heads; Heads; Tails]
@@ -88,6 +89,7 @@ let query3 observation =
         rQuery { let probPrior = uniform()
                  let coinFlip = fun _ -> if binomial probPrior then Heads else Tails
                  let generated = List.init (List.length observation) coinFlip
+                 // inefficient check
                  if generated = observation then return probPrior}
 
 let evaluate3 =
@@ -99,13 +101,20 @@ let evaluate3 =
     (avg, res)
 
 (**
-Let's have a look at more complicated reasoning (Tug of War) examples:
+Now we have generic query workflow and repeat function that can be used to define quite basic sampling.
+
+Matching of generated sequence with observation is very inefficient.
+ As the length of observed sequence grows, the algorithm will become increasingly slow as it will become more unlikely to generate sequence matching observations.
+ I will demonstrate more efficient ways of doing this in Part2.
+
+Meantime let's have a look at more complicated (and more fun) reasoning (Tug of War) examples:
 **)
 open MathNet.Numerics.Distributions
 
 let gaussian mean stddev =
     Normal(mean, stddev).Sample()
 
+// helper function to allow us remember a value once it has been calculated once
 let memoise f =
     let dict = new System.Collections.Generic.Dictionary<_,_>()
     (fun k ->
@@ -119,8 +128,11 @@ type Teams =
     | Team1
     | Team2
 
+(**We are insterested in estimating bob's strength, given observed winning teams for 2 trials.**)
 let query4 () =
-    rQuery { let strengthOf = memoise (fun _ -> gaussian 0. 1.)
+    rQuery { // generate random value for person's strength and memorise as the person strenght will not change from trial to trial
+             let strengthOf = memoise (fun _ -> gaussian 0. 1.)
+             // generate indicator for each trial whenever given person is lazy during that trial
              let isLazy person = binomial (1./3.)
              let personPullingPower person = if isLazy person then (strengthOf person) / 2.
                                              else strengthOf person
@@ -139,6 +151,8 @@ let evaluate4 =
     let avg = Seq.averageBy (fun (v: float option) -> v.Value) res
     (res, avg)
 
+
+(**Similar to previous we are instersting in knowing probability if bob and mary will win given mary is stronger than sue and bob and francis have won in previous trial**)
 let query5 () =
     rQuery { let strengthOf = memoise (fun _ -> gaussian 0. 1.)
              let isLazy person = binomial (1./3.)
