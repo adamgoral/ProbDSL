@@ -58,7 +58,6 @@
     <None Include="paket.references" />
     <None Include="paket.dependencies" />
     <None Include="paket.lock" />
-    <Compile Include="HMSampler.fs" />
     <Compile Include="Main.fs" />
     <None Include="ProbDSLPart1.fsx" />
   </ItemGroup>
